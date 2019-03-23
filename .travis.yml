@@ -1,0 +1,81 @@
+os: linux
+dist: xenial
+language: python
+sudo: required
+python:
+- '3.7'
+- '3.6'
+- '3.5'
+cache:
+- apt
+- pip
+env:
+  global:
+  - PIP_INSTALL="pip3 install"
+  - INSTALL_DEPS="$PIP_INSTALL -r requirements.txt"
+  - PYTEST="$PIP_INSTALL pytest pytest-randomly pytest-cov"
+  - CODACY="$PIP_INSTALL codacy-coverage"
+  - LIBDISCID="libdiscid0 libdiscid-dev"
+  matrix:
+  - INSTALL_DEPS="$PIP_INSTALL -r requirements.txt"
+  - INSTALL_DEPS="$PIP_INSTALL pyqt5==5.11.3 mutagen       discid"
+  - INSTALL_DEPS="$PIP_INSTALL pyqt5==5.10   mutagen       discid"
+  - INSTALL_DEPS="$PIP_INSTALL pyqt5==5.9    mutagen       discid"
+  - INSTALL_DEPS="$PIP_INSTALL pyqt5==5.8    mutagen       discid"
+  - INSTALL_DEPS="$PIP_INSTALL pyqt5==5.8    mutagen==1.37 discid"
+matrix:
+  include:
+  - os: osx
+    osx_image: xcode6.4
+    language: generic
+    env:
+    - DISCID_VERSION=0.6.2
+    - FPCALC_VERSION=1.4.3
+    - PYTHON_VERSION=3.7.2
+    - INSTALL_DEPS="$PIP_INSTALL -r requirements-macos.txt"
+  - os: osx
+    osx_image: xcode7.3
+    language: generic
+    env:
+    - DISCID_VERSION=0.6.2
+    - FPCALC_VERSION=1.4.3
+    - PYTHON_VERSION=3.7.2
+    - INSTALL_DEPS="$PIP_INSTALL -r requirements-macos.txt"
+  # - os: osx
+  #   osx_image: xcode10.1
+  #   language: generic
+  #   env:
+  #   - DISCID_VERSION=0.6.2
+  #   - FPCALC_VERSION=1.4.3
+  #   - PYTHON_VERSION=3.7.2
+  fast_finish: true
+before_install:
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -qq && sudo apt-get
+  install -qq $LIBDISCID qt5-default; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then bash scripts/setup-osx.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export LD_LIBRARY_PATH=`pwd`:$LD_LIBRARY_PATH; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source bin/activate; fi
+- "$INSTALL_DEPS"
+- "$PYTEST"
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then bash scripts/package-osx.sh; fi
+script: py.test -v --cov=picard --cov-report xml:coverage.xml
+after_success:
+- if [ ! -z "${CODACY_PROJECT_TOKEN}" ]; then $CODACY; python-codacy-coverage -r coverage.xml;
+  fi
+notifications:
+  irc: chat.freenode.net#metabrainz
+branches:
+  only:
+  - master
+  - /\d\.[0-9x](\.[0-9x])?/
+deploy:
+  provider: releases
+  api_key:
+    secure: JgtlHc3OkQ+VzfpV7QGSIo/uJQdXSYgssi/f6rfwTYEy3nkLNRys7EQAYa8VExeK+QytiTuW6/2/hIUgFbjYywpkIBv+JiVrDStBOB8jI8QPcWx1fYWKnZOSITbvLXbKWNk4zMe8ccNIeP0+wRkZwio6FqrADbgg1On6n7setzU=
+  file_glob: true
+  skip_cleanup: true
+  file: dist/*.dmg
+  on:
+    tags: true
+    all_branches: true
+    condition: $TRAVIS_OSX_IMAGE = xcode6.4
