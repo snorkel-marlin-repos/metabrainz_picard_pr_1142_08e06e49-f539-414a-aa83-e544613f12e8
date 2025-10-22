@@ -33,7 +33,6 @@ from picard.script import (
     ScriptError,
     ScriptParser,
 )
-from picard.util.settingsoverride import SettingsOverride
 
 from picard.ui.options import (
     OptionsCheckError,
@@ -139,15 +138,16 @@ class RenamingOptionsPage(OptionsPage):
         self.update_examples()
 
     def _example_to_filename(self, file):
-        settings = SettingsOverride(config.setting, {
-            'ascii_filenames': self.ui.ascii_filenames.isChecked(),
-            'file_naming_format': self.ui.file_naming_format.toPlainText(),
-            'move_files': self.ui.move_files.isChecked(),
-            'move_files_to': os.path.normpath(self.ui.move_files_to.text()),
-            'rename_files': self.ui.rename_files.isChecked(),
+        settings = {
             'windows_compatibility': self.ui.windows_compatibility.isChecked(),
-        })
-
+            'ascii_filenames': self.ui.ascii_filenames.isChecked(),
+            'rename_files': self.ui.rename_files.isChecked(),
+            'move_files': self.ui.move_files.isChecked(),
+            'use_va_format': False,  # TODO remove
+            'file_naming_format': self.ui.file_naming_format.toPlainText(),
+            'move_files_to': os.path.normpath(self.ui.move_files_to.text()),
+            'clear_existing_tags': config.setting['clear_existing_tags'],
+        }
         try:
             if config.setting["enable_tagger_scripts"]:
                 for s_pos, s_name, s_enabled, s_text in config.setting["list_of_scripts"]:
